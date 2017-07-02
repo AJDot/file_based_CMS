@@ -1,16 +1,1 @@
-(source data: https://www.ruby-lang.org/en/news/2017/03/30/ruby-2-3-4-released/)
-
-Ruby 2.3.4 Released
-Posted by nagachika on 30 Mar 2017
-Ruby 2.3.4 has been released.
-
-This release contains about 80 bug fixes after the previous release. See the commit logs for details.
-
-And this release contains a bug fix of Symbol#hash to be non-deterministic. This is a regression on the 2.3 series before 2.3.4. See Bug #13376 for more details.
-
-Known Problem
-(This section was added at April 11, 2017.)
-
-An API incompatibility has been found for Ruby 2.3.4. It is the accidental removal of the API function rb_thread_fd_close. We will fix this problem with the next release, but if you are facing the problem now and need to overcome it immediately, use this patch:
-
-patch for rb_thread_fd_close problem
+Documents can now be changed!

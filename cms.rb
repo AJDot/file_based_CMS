@@ -8,7 +8,13 @@ configure do
   set :session_secret, 'super secret'
 end
 
-root = File.expand_path("..", __FILE__)
+def data_path
+  if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/data", __FILE__)
+  else
+    File.expand_path("../data", __FILE__)
+  end
+end
 
 def render_markdown(text)
   markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
@@ -22,19 +28,50 @@ def load_file_content(path)
     headers["Content-Type"] = "text/plain"
     content
   when ".md"
-    render_markdown(content)
+    erb render_markdown(content)
+  end
+end
+
+def error_for_filename(name)
+  if name.size == 0
+    "A name is required."
+  elsif File.extname(name) == ""
+    "Must specify file extension."
+  else
   end
 end
 
 get "/" do
-  @files = Dir.glob(root + "/data/*").map do |path|
+  pattern = File.join(data_path, "*")
+  @files = Dir.glob(pattern).map do |path|
     File.basename(path)
   end
   erb :index, layout: :layout
 end
 
+get "/new" do
+  erb :new, layout: :layout
+end
+
+post "/create" do
+  filename = params[:filename].strip
+
+  error = error_for_filename(filename)
+  if error
+    session[:message] = error
+    status 422
+    erb :new
+  else
+    file_path = File.join(data_path, filename)
+
+    File.write(file_path, "")
+    session[:message] = "#{params[:filename]} has been created."
+    redirect "/"
+  end
+end
+
 get "/:filename" do
-  file_path = root + "/data/" + params[:filename]
+  file_path = File.join(data_path, params[:filename])
 
   if File.file?(file_path)
     load_file_content(file_path)
@@ -42,4 +79,22 @@ get "/:filename" do
     session[:message] = "#{params[:filename]} does not exist."
     redirect "/"
   end
+end
+
+get "/:filename/edit" do
+  file_path = File.join(data_path, params[:filename])
+
+  @filename = params[:filename]
+  @content = File.read(file_path)
+
+  erb :edit, layout: :layout
+end
+
+post "/:filename" do
+  file_path = File.join(data_path, params[:filename])
+
+  File.write(file_path, params[:content])
+
+  session[:message] = "#{params[:filename]} has been updated."
+  redirect "/"
 end

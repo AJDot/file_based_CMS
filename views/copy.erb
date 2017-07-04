@@ -1,0 +1,8 @@
+<form action="/copy" method="post">
+  <label name="name">Add a new document:</label>
+  <div>
+    <input type="hidden" name="content" value="<%= @content %>" />
+    <input name="filename" value="<%= @filename %>" />
+    <button type="submit">Duplicate</button>
+  </div>
+</form>

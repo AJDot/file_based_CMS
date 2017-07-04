@@ -151,6 +151,28 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, "A name is required."
   end
 
+  def test_create_new_document_without_file_extension
+    post "/create", {filename: "changes"}, admin_session
+
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "Must specify file extension."
+  end
+
+  def test_create_new_document_with_unsupported_format
+    post "/create", {filename: "changes.unknown"}, admin_session
+
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "File format not supported!"
+  end
+
+  def test_create_new_document_with_existing_filename
+    create_document "changes.txt"
+    post "/create", {filename: "changes.txt"}, admin_session
+
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "File already exists!"
+  end
+
   def test_deleting_document
     create_document "test.txt"
 
@@ -168,6 +190,57 @@ class CMSTest < Minitest::Test
     post "/test.txt/delete"
     assert_equal 302, last_response.status
     assert_equal "You must be signed in to do that.", session[:message]
+  end
+
+  def test_duplicate_document
+    create_document "test.txt"
+
+    post "/copy", { filename: "test_copy.txt", content: "" }, admin_session
+
+    assert_equal 302, last_response.status
+
+    get last_response["Location"]
+    assert_includes last_response.body, "The file was copied to test_copy.txt."
+  end
+
+  def test_duplicate_document_signed_out
+    create_document "test.txt"
+
+    post "/copy", { filename: "test_copy.txt", content: "" }
+
+    assert_equal 302, last_response.status
+    assert_equal "You must be signed in to do that.", session[:message]
+  end
+
+  def test_duplicate_document_without_filename
+    create_document "test.txt"
+    post "/copy", {filename: ""}, admin_session
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "A name is required."
+  end
+
+  def test_duplicate_document_without_file_extension
+    create_document "test.txt"
+    post "/copy", {filename: "test"}, admin_session
+
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "Must specify file extension."
+  end
+
+  def test_duplicate_document_with_unsupported_format
+    create_document "test.txt"
+    post "/copy", {filename: "test.unknown"}, admin_session
+
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "File format not supported!"
+  end
+
+  def test_duplicate_document_with_existing_filename
+    create_document "test.txt"
+    post "/copy", {filename: "test.txt"}, admin_session
+
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "File already exists!"
   end
 
   def test_signin_form
@@ -206,4 +279,5 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, "You have been signed out"
     assert_includes last_response.body, "Sign In"
   end
+
 end

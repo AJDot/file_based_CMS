@@ -32,6 +32,13 @@ def render_markdown(text)
   markdown.render(text)
 end
 
+def all_filenames
+  pattern = File.join(data_path, "*")
+  Dir.glob(pattern).map do |path|
+    File.basename(path)
+  end
+end
+
 def load_file_content(path)
   content = File.read(path)
   case File.extname(path)
@@ -49,7 +56,9 @@ def error_for_filename(name)
   elsif File.extname(name) == ""
     "Must specify file extension."
   elsif !(%w(.md .txt).include? File.extname(name))
-    "File format not supported."
+    "File format not supported!"
+  elsif all_filenames.include? name
+    "File already exists!"
   end
 end
 
@@ -76,10 +85,7 @@ def valid_credentials?(username, password)
 end
 
 get "/" do
-  pattern = File.join(data_path, "*")
-  @files = Dir.glob(pattern).map do |path|
-    File.basename(path)
-  end
+  @files = all_filenames
   erb :index, layout: :layout
 end
 
@@ -133,6 +139,25 @@ post "/create" do
   end
 end
 
+post "/copy" do
+  require_signed_in_user
+  @filename = params[:filename].to_s
+  @content = params[:content]
+
+  error = error_for_filename(@filename)
+  if error
+    session[:message] = error
+    status 422
+    erb :copy
+  else
+    file_path = File.join(data_path, @filename)
+
+    File.write(file_path, @content)
+    session[:message] = "The file was copied to #{@filename}."
+    redirect "/"
+  end
+end
+
 get "/:filename" do
   file_path = File.join(data_path, params[:filename])
 
@@ -152,6 +177,16 @@ get "/:filename/edit" do
   @content = File.read(file_path)
 
   erb :edit, layout: :layout
+end
+
+get "/:filename/copy" do
+  require_signed_in_user
+  file_path = File.join(data_path, params[:filename])
+
+  @filename = params[:filename]
+  @content = File.read(file_path)
+
+  erb :copy, layout: :layout
 end
 
 post "/:filename" do

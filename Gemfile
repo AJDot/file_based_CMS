@@ -7,3 +7,5 @@ gem "erubis"
 gem "minitest"
 
 gem "redcarpet"
+
+gem "bcrypt"

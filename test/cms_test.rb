@@ -5,6 +5,8 @@ require "fileutils"
 
 require "rack/test"
 require "minitest/autorun"
+require "minitest/reporters"
+Minitest::Reporters.use!
 
 require_relative "../cms"
 
@@ -16,11 +18,17 @@ class CMSTest < Minitest::Test
   end
 
   def setup
+    # create data directory
     FileUtils.mkdir_p(data_path)
+    # create user.yml for testing
+    File.write(credentials_path, "---\n")
+    # add an admin user for tests
+    save_user_credentials("admin", "super_secret")
   end
 
   def teardown
     FileUtils.rm_rf(data_path)
+    FileUtils.rm(credentials_path)
   end
 
   def create_document(name, content = "")
@@ -252,7 +260,7 @@ class CMSTest < Minitest::Test
   end
 
   def test_signin
-    post "/users/signin", username: "admin", password: "secret"
+    post "/users/signin", username: "admin", password: "super_secret"
     assert_equal 302, last_response.status
     assert_equal "Welcome!", session[:message]
     assert_equal "admin", session[:username]
@@ -280,4 +288,41 @@ class CMSTest < Minitest::Test
     assert_includes last_response.body, "Sign In"
   end
 
+  def test_signup_form
+    get "/users/signup"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, %q(<input)
+    assert_includes last_response.body, %q(<button type="submit")
+    assert_includes last_response.body, "Confirm Password:"
+  end
+
+  def test_signup
+    post "/users/signup", { username: "testname", password: "testpassword", password_confirm: "testpassword" }
+    assert_equal 302, last_response.status
+    assert_equal "You are now signed up! Please sign in to access more features.", session[:message]
+
+    assert load_user_credentials["testname"]
+  end
+
+  def test_signup_with_existing_username
+    post "/users/signup", { username: "admin", password: "super_secret", password_confirm: "super_secret" }
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "admin is already taken."
+    assert_equal 1, load_user_credentials.size
+  end
+
+  def test_signup_with_bad_password_match
+    post "/users/signup", { username: "testuser", password: "super_secret", password_confirm: "not_super_secret" }
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "Passwords do not match."
+    assert_nil load_user_credentials["testuser"]
+  end
+
+  def test_signup_with_bad_short_password
+    post "/users/signup", { username: "testuser", password: "short", password_confirm: "short" }
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "Password must be at least 6 characters."
+    assert_nil load_user_credentials["testuser"]
+  end
 end

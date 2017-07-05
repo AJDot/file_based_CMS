@@ -2,7 +2,7 @@
   <label name="name">Add a new document:</label>
   <div>
     <input type="hidden" name="content" value="<%= @content %>" />
-    <input name="filename" value="<%= @filename %>" />
+    <input name="filename" value="<%= params[:filename] %>" />
     <button type="submit">Duplicate</button>
   </div>
 </form>

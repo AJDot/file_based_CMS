@@ -5,6 +5,7 @@ gem "sinatra-contrib"
 gem "erubis"
 
 gem "minitest"
+gem "minitest-reporters"
 
 gem "redcarpet"
 

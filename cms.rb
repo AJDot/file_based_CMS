@@ -18,13 +18,20 @@ def data_path
   end
 end
 
-def load_user_credentials
-  credentials_path = if ENV["RACK_ENV"] == "test"
+def credentials_path
+  if ENV["RACK_ENV"] == "test"
     File.expand_path("../test/users.yml", __FILE__)
   else
     File.expand_path("../users.yml", __FILE__)
   end
+end
+
+def load_user_credentials
   YAML.load_file(credentials_path)
+end
+
+def save_user_credentials(username, password)
+  File.open(credentials_path, 'a') { |f| f.puts "#{username}: #{BCrypt::Password.create(password).to_s}"}
 end
 
 def render_markdown(text)
@@ -84,9 +91,51 @@ def valid_credentials?(username, password)
   end
 end
 
+def error_for_new_username(username)
+  credentials = load_user_credentials
+
+  if credentials.key?(username)
+    "#{username} is already taken."
+  elsif username.size == 0
+    "A username is required."
+  end
+end
+
+def error_for_new_password(password, password_confirm)
+  if password != password_confirm
+    "Passwords do not match."
+  elsif password.size < 6
+    "Password must be at least 6 characters."
+  end
+end
+
+
 get "/" do
   @files = all_filenames
   erb :index, layout: :layout
+end
+
+get "/users/signup" do
+  erb :signup
+end
+
+post "/users/signup" do
+  username = params[:username]
+  password = params[:password]
+  password_confirm = params[:password_confirm]
+
+  username_error = error_for_new_username(username)
+  password_error = error_for_new_password(password, password_confirm)
+
+  if username_error || password_error
+    status 422
+    session[:message] = username_error || password_error
+    erb :signup
+  else
+    save_user_credentials(username, password)
+    session[:message] = "You are now signed up! Please sign in to access more features."
+    redirect "/"
+  end
 end
 
 get "/users/signin" do
@@ -94,8 +143,6 @@ get "/users/signin" do
 end
 
 post "/users/signin" do
-  credentials = load_user_credentials
-
   username = params[:username]
 
   if valid_credentials?(username, params[:password])
@@ -141,19 +188,19 @@ end
 
 post "/copy" do
   require_signed_in_user
-  @filename = params[:filename].to_s
+  filename = params[:filename].to_s
   @content = params[:content]
 
-  error = error_for_filename(@filename)
+  error = error_for_filename(filename)
   if error
     session[:message] = error
     status 422
     erb :copy
   else
-    file_path = File.join(data_path, @filename)
+    file_path = File.join(data_path, filename)
 
     File.write(file_path, @content)
-    session[:message] = "The file was copied to #{@filename}."
+    session[:message] = "The file was copied to #{filename}."
     redirect "/"
   end
 end

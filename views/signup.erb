@@ -1,4 +1,4 @@
-<form method="post" action="/users/signin">
+<form method="post" action="/users/signup">
   <table>
     <tr>
       <td><label name="username">Username:</label></td>
@@ -8,6 +8,10 @@
       <td><label name="password">Password:</label></td>
       <td><input type="password" name="password" /></td>
     </tr>
+    <tr>
+      <td><label name="password_confirm">Confirm Password:</label></td>
+      <td><input type="password" name="password_confirm" /></td>
+    </tr>
   </table>
-  <button type="submit">Sign In</button>
+  <button type="submit">Sign Up</button>
 </form>

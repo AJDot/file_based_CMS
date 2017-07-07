@@ -213,6 +213,17 @@ post "/copy" do
   end
 end
 
+get "/upload" do
+  erb :upload
+end
+
+post "/upload" do
+  file_destination = File.join(data_path, params[:image][:filename])
+  file_location = params[:image][:tempfile].path
+  FileUtils.copy(file_location, file_destination)
+  redirect "/"
+end
+
 get "/:filename" do
   file_path = File.join(data_path, params[:filename])
 

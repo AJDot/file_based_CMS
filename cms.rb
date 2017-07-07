@@ -46,6 +46,10 @@ def all_filenames
   end
 end
 
+def valid_image_extensions
+  ['.jpg', '.JPG', '.png']
+end
+
 def load_file_content(path)
   content = File.read(path)
   case File.extname(path)
@@ -54,6 +58,10 @@ def load_file_content(path)
     content
   when ".md"
     erb render_markdown(content)
+  when *valid_image_extensions
+    image_type = "image/" + File.extname(path)[1..-1]
+    headers["Content-Type"] = image_type
+    send_file path
   end
 end
 

@@ -1,5 +1,9 @@
 <form method="post" action="/upload" enctype="multipart/form-data">
-  <label for="image">Choose an image to upload</label>
-  <input type="file" name="image" accept="image/*" >
-  <button type="submit">Upload</button>
+  <fieldset>
+    <legend>Upload an Image</legend>
+    <label for="image">Choose an image to upload: </label>
+    <input type="file" name="image" accept="image/*" >
+    <br><br>
+    <button type="submit">Upload</button>
+  </fieldset>
 </form>

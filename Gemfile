@@ -10,3 +10,5 @@ gem "minitest-reporters"
 gem "redcarpet"
 
 gem "bcrypt"
+
+gem 'pry'

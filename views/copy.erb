@@ -1,8 +1,12 @@
 <form action="/copy" method="post">
-  <label name="name">Add a new document:</label>
-  <div>
-    <input type="hidden" name="content" value="<%= @content %>" />
-    <input name="filename" value="<%= params[:filename] %>" />
+  <fieldset>
+    <legend>Copy File</legend>
+    <label for="file_basename">Filename: </label>
+    <input name="file_basename" value="<%= @file_basename %>" />
+    <%= @file_ext %>
+    <input type="hidden" name="file_ext" value="<%= @file_ext %>" />
+    <input type="hidden" name="file_location" value="<%= @file_location %>" />
+    <br><br>
     <button type="submit">Duplicate</button>
-  </div>
+  </fieldset>
 </form>

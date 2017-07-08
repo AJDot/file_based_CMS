@@ -4,6 +4,7 @@ require "sinatra/reloader" if development?
 require "tilt/erubis"
 require "yaml"
 require "bcrypt"
+require 'pry'
 
 configure do
   enable :sessions
@@ -50,6 +51,10 @@ def valid_image_extensions
   ['.jpg', '.JPG', '.png']
 end
 
+def valid_file_extensions
+  ['.md', '.txt']
+end
+
 def load_file_content(path)
   content = File.read(path)
   case File.extname(path)
@@ -68,10 +73,20 @@ end
 def error_for_filename(name)
   if name.size == 0
     "A name is required."
-  elsif File.extname(name) == ""
-    "Must specify file extension."
-  elsif !(%w(.md .txt).include? File.extname(name))
+  elsif name.split('.').length != 2
+    "Must specify one file extension."
+  elsif !((valid_image_extensions + valid_file_extensions).include? File.extname(name))
     "File format not supported!"
+  elsif all_filenames.include? name
+    "File already exists!"
+  end
+end
+
+def error_for_copyname(name)
+  if name.split('.').first.size == 0
+    "A name is required."
+  elsif name.split('.').length > 2
+    "An extension is already provided."
   elsif all_filenames.include? name
     "File already exists!"
   end
@@ -155,7 +170,7 @@ post "/users/signin" do
 
   if valid_credentials?(username, params[:password])
     session[:username] = username
-    session[:message] = 'Welcome!'
+    session[:message] = "Welcome, #{username}!"
     redirect "/"
   else
     status 422
@@ -196,32 +211,48 @@ end
 
 post "/copy" do
   require_signed_in_user
-  filename = params[:filename].to_s
-  @content = params[:content]
+  @file_basename = params[:file_basename]
+  @file_ext = params[:file_ext]
+  @file_location = params[:file_location]
+  filename = @file_basename + @file_ext
 
-  error = error_for_filename(filename)
+  error = error_for_copyname(filename)
   if error
     session[:message] = error
     status 422
     erb :copy
   else
-    file_path = File.join(data_path, filename)
+    file_location = params[:file_location]
+    file_destination = File.join(data_path, filename)
 
-    File.write(file_path, @content)
+    FileUtils.copy(file_location, file_destination)
     session[:message] = "The file was copied to #{filename}."
     redirect "/"
   end
 end
 
 get "/upload" do
+  require_signed_in_user
   erb :upload
 end
 
 post "/upload" do
-  file_destination = File.join(data_path, params[:image][:filename])
-  file_location = params[:image][:tempfile].path
-  FileUtils.copy(file_location, file_destination)
-  redirect "/"
+  image = params[:image]
+  filename = image[:filename]
+
+  error = error_for_filename(filename)
+  if error
+    session[:message] = error
+    status 422
+    erb :upload
+  else
+    file_destination = File.join(data_path, filename)
+    file_location = image[:tempfile].path
+
+    FileUtils.copy(file_location, file_destination)
+    session[:message] = "#{filename} was uploaded."
+    redirect "/"
+  end
 end
 
 get "/:filename" do
@@ -247,10 +278,9 @@ end
 
 get "/:filename/copy" do
   require_signed_in_user
-  file_path = File.join(data_path, params[:filename])
-
-  @filename = params[:filename]
-  @content = File.read(file_path)
+  @file_location = File.join(data_path, params[:filename])
+  @file_basename = File.basename(params[:filename], ".*")
+  @file_ext = File.extname(params[:filename])
 
   erb :copy, layout: :layout
 end
